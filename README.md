@@ -1,5 +1,5 @@
 # CrashCat
-# 一个用于捕获应用崩溃信息写入本地存储的工具类
+## 一个用于捕获应用崩溃信息写入本地存储的工具类
 ## 使用方法:
 ### 1.build.gradle中加入: 
 #### compile 'com.zhWang:crashcat:1.0.0'
