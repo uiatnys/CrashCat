@@ -35,26 +35,29 @@ public class CrashCat implements Thread.UncaughtExceptionHandler {
     private BufferedOutputStream bufferedOutputStream;
     private static String FILE_NAME = "";
     private Intent intent;
+    private PackageManager packageManager;
+    private PackageInfo packageInfo;
 
-    private CrashCat(Context context,String filePath,String fileName){
+    private CrashCat(Context context, String filePath, String fileName){
         init(context,filePath,fileName);
     }
 
-    public static CrashCat getInstance(Context context,String filePath,String fileName){
+    public static CrashCat getInstance(Context context, String filePath, String fileName){
         crashCat = new CrashCat(context,filePath,fileName);
         return  crashCat;
     }
 
-    private void init(Context context,String filePath,String fileName){
+    private void init(Context context, String filePath, String fileName){
         this.mContext = context;
         this.FILE_NAME = fileName;
         try {
-            intent = new Intent(mContext
-                    ,Class.forName(mContext.getPackageManager()
-                    .getLaunchIntentForPackage(mContext.getPackageName())
-                    .getComponent().getClassName()));
-        } catch (ClassNotFoundException e) {
+            packageManager = mContext.getPackageManager();
+            packageInfo = packageManager.getPackageInfo(mContext.getPackageName(),0);
+            intent = packageManager.getLaunchIntentForPackage(mContext.getPackageName());
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        } catch (Exception e) {
             writeLog(e.toString());
+            intent = null;
         }
         path = new File(filePath);
         if (!path.exists()){
@@ -62,12 +65,13 @@ public class CrashCat implements Thread.UncaughtExceptionHandler {
         }
         StringBuffer sb = new StringBuffer();
         sb.append("DeviceID="+ Build.ID+"\n");
-        sb.append("AndroidApi="+Build.VERSION.SDK_INT+"\n");
-        sb.append("AndroidVersion="+Build.VERSION.RELEASE+"\n");
-        sb.append("Brand="+Build.BRAND+"\n");
-        sb.append("ManuFacture="+Build.MANUFACTURER+"\n");
-        sb.append("Model="+Build.MODEL+"\n");
+        sb.append("AndroidApi="+ Build.VERSION.SDK_INT+"\n");
+        sb.append("AndroidVersion="+ Build.VERSION.RELEASE+"\n");
+        sb.append("Brand="+ Build.BRAND+"\n");
+        sb.append("ManuFacture="+ Build.MANUFACTURER+"\n");
+        sb.append("Model="+ Build.MODEL+"\n");
         sb.append("PackageName="+mContext.getPackageName()+"\n");
+        sb.append("CurrentVersionName="+packageInfo.versionName+"\n");
         DEVICE_INFO = sb.toString();
         writeLog("Application Start");
     }
@@ -101,11 +105,14 @@ public class CrashCat implements Thread.UncaughtExceptionHandler {
             try{
                 writeLog(DEVICE_INFO+exception.toString());
             }finally {
-                Process.killProcess(Process.myPid());
-                System.exit(1);
-                mContext.startActivity(intent);
+                try{
+                    mContext.startActivity(intent);
+                    Process.killProcess(Process.myPid());
+                    System.exit(1);
+                }catch (Exception e){
+                    Log.e("Application can not restart",e.toString());
+                }
             }
-
         }
     }
 
